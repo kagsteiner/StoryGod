@@ -1,5 +1,8 @@
 import type { NarrativeProject, StoryPacing, StorySession, StorySuggestion } from "./types.js";
 
+const applicationBasePath = document.querySelector<HTMLMetaElement>('meta[name="application-base-path"]')?.content.replace(/\/$/, "") ?? "";
+const applicationUrl = (path: string): string => `${applicationBasePath}${path}`;
+
 const get = <T extends Element>(selector: string): T => { const value = document.querySelector<T>(selector); if (!value) throw new Error(`Missing reader element: ${selector}`); return value; };
 const builder = get<HTMLElement>("#builder-shell"); const reader = get<HTMLElement>("#reader-shell"); const pages = get<HTMLElement>("#reader-pages");
 const generationPanel = get<HTMLElement>("#reader-generation"); const errorPanel = get<HTMLElement>("#reader-error"); const composer = get<HTMLElement>("#story-composer"); const ending = get<HTMLElement>("#story-ending");
@@ -17,7 +20,7 @@ function proseMarkdown(value: string, sceneTitle: string): string {
 }
 
 async function request<T>(path: string, method = "GET", payload?: unknown): Promise<T> {
-  const response = await fetch(path, { method, ...(payload === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }) });
+  const response = await fetch(applicationUrl(path), { method, ...(payload === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }) });
   const result = await response.json() as T & { error?: string };
   if (!response.ok) { const error = new Error(result.error ?? "Request failed") as Error & { status?: number }; error.status = response.status; throw error; }
   return result;
@@ -40,7 +43,7 @@ async function readBackup(id: string): Promise<StorySession | undefined> {
 }
 
 function activeId(): string | undefined { try { return localStorage.getItem(ACTIVE_KEY) ?? undefined; } catch { return undefined; } }
-function storyIdFromUrl(): string | undefined { return location.pathname.match(/^\/story\/([a-zA-Z0-9-]+)$/)?.[1]; }
+function storyIdFromUrl(): string | undefined { return location.pathname.match(/\/story\/([a-zA-Z0-9-]+)$/)?.[1]; }
 function newRequestId(): string { if (typeof crypto.randomUUID === "function") return crypto.randomUUID(); const bytes = crypto.getRandomValues(new Uint8Array(16)); return `mobile-${Date.now().toString(36)}-${[...bytes].map(value => value.toString(16).padStart(2, "0")).join("")}`; }
 
 function showReader(): void { builder.hidden = true; reader.hidden = false; document.body.classList.add("reader-open"); }
@@ -113,7 +116,7 @@ async function resumeGeneration(session: StorySession): Promise<void> {
 
 export async function startStory(project: NarrativeProject): Promise<void> {
   const result = await request<{ session: StorySession }>("/api/story/sessions", "POST", { project, pacing: "adaptive" });
-  current = result.session; await backupSession(result.session); history.pushState({}, "", `/story/${result.session.id}`); lastRenderedTurnCount = -1; renderSession(result.session); 
+  current = result.session; await backupSession(result.session); history.pushState({}, "", applicationUrl(`/story/${result.session.id}`)); lastRenderedTurnCount = -1; renderSession(result.session); 
 }
 
 continueButton.addEventListener("click", () => { if (!current) return; const action = actionInput.value.trim(); if (!action) { actionInput.focus(); return; } continueButton.disabled = true; void requestScene(current, false, action).finally(() => { continueButton.disabled = false; }); });
@@ -122,7 +125,7 @@ inspirationButton.addEventListener("click", () => { if (!current) return; inspir
 get("#retry-scene").addEventListener("click", () => { if (!current) return; void resumeGeneration(current); });
 get("#reader-library").addEventListener("click", () => { history.pushState({}, "", "/"); showBuilder(); });
 get("#theme-toggle").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
-continueStoryButton.addEventListener("click", () => { const id = activeId(); if (id) { history.pushState({}, "", `/story/${id}`); void refreshSession(id); } });
+continueStoryButton.addEventListener("click", () => { const id = activeId(); if (id) { history.pushState({}, "", applicationUrl(`/story/${id}`)); void refreshSession(id); } });
 window.addEventListener("popstate", () => { const id = storyIdFromUrl(); if (id) void refreshSession(id); else showBuilder(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && current && !reader.hidden) void refreshSession(current.id); });
 window.addEventListener("pageshow", event => { if (event.persisted && current && !reader.hidden) void refreshSession(current.id); });

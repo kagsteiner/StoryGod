@@ -1,6 +1,9 @@
 import type { GenomeCandidate, NarrativeProject, TasteProfile } from "./types.js";
 import { startStory } from "./story-client.js";
 
+const applicationBasePath = document.querySelector<HTMLMetaElement>('meta[name="application-base-path"]')?.content.replace(/\/$/, "") ?? "";
+const applicationUrl = (path: string): string => `${applicationBasePath}${path}`;
+
 const $ = <T extends Element>(selector: string): T => { const element = document.querySelector<T>(selector); if (!element) throw new Error(`Missing element: ${selector}`); return element; };
 const form = $<HTMLFormElement>("#taste-form"); const grid = $("#candidate-grid"); const status = $("#status");
 let tasteProfile: TasteProfile | undefined; let project: NarrativeProject | undefined;
@@ -12,7 +15,7 @@ document.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(input
 function toast(message: string, error = false): void { status.textContent = message; status.className = `status show${error ? " error" : ""}`; window.setTimeout(() => status.classList.remove("show"), 3200); }
 function values(value: FormDataEntryValue | null): string[] { return String(value ?? "").split(",").map(x => x.trim()).filter(Boolean); }
 function show(name: "profile" | "candidates" | "project"): void { document.querySelectorAll(".panel").forEach(p => p.classList.remove("active")); $(`#${name}-panel`).classList.add("active"); document.querySelectorAll<HTMLButtonElement>(".step").forEach(step => step.classList.toggle("active", step.dataset.step === name)); window.scrollTo({ top: 330, behavior: "smooth" }); }
-async function api<T>(path: string, payload: unknown): Promise<T> { const response = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); const result = await response.json() as T & { error?: string }; if (!response.ok) throw new Error(result.error ?? "Request failed"); return result; }
+async function api<T>(path: string, payload: unknown): Promise<T> { const response = await fetch(applicationUrl(path), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); const result = await response.json() as T & { error?: string }; if (!response.ok) throw new Error(result.error ?? "Request failed"); return result; }
 const human = (value: string): string => value.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
 
 form.addEventListener("submit", async event => {
@@ -52,7 +55,7 @@ function renderSection(key: string): void {
 }
 
 async function exportProject(): Promise<void> {
-  if (!project) return; try { const response = await fetch("/api/export", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project }) }); if (!response.ok) throw new Error("Export failed"); const blob = await response.blob(); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${project.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.zip`; link.click(); URL.revokeObjectURL(link.href); toast("Project package downloaded with all ten files."); } catch (error) { toast(error instanceof Error ? error.message : "Export failed", true); }
+  if (!project) return; try { const response = await fetch(applicationUrl("/api/export"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project }) }); if (!response.ok) throw new Error("Export failed"); const blob = await response.blob(); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${project.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.zip`; link.click(); URL.revokeObjectURL(link.href); toast("Project package downloaded with all ten files."); } catch (error) { toast(error instanceof Error ? error.message : "Export failed", true); }
 }
 
 document.querySelectorAll<HTMLButtonElement>(".step").forEach(step => step.addEventListener("click", () => { if (!step.disabled) show(step.dataset.step as "profile" | "candidates" | "project"); }));
