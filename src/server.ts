@@ -58,4 +58,4 @@ export const server = createServer(async (req, res) => {
   } catch (error) { json(res, 400, { error: error instanceof Error ? error.message : "Unexpected error" }); }
 });
 
-if (process.env.NODE_ENV !== "test") { const port = Number(process.env.PORT ?? 3000); server.listen(port, () => console.log(`Narrative Genetics is running at http://localhost:${port}`)); }
+if (process.env.NODE_ENV !== "test") { const port = Number(process.env.PORT ?? 3006); server.listen(port, () => console.log(`Narrative Genetics is running at http://localhost:${port}`)); }

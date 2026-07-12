@@ -24,7 +24,7 @@ The key is read only by the Node.js server and is never sent to the browser.
 npm start
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3006>.
 
 ## Generation pipeline
 
