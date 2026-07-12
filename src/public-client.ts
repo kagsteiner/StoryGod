@@ -7,6 +7,8 @@ const applicationUrl = (path: string): string => `${applicationBasePath}${path}`
 const $ = <T extends Element>(selector: string): T => { const element = document.querySelector<T>(selector); if (!element) throw new Error(`Missing element: ${selector}`); return element; };
 const form = $<HTMLFormElement>("#taste-form"); const grid = $("#candidate-grid"); const status = $("#status");
 let tasteProfile: TasteProfile | undefined; let project: NarrativeProject | undefined;
+type ProjectJob = { id: string; status: "queued" | "generating" | "complete" | "failed"; project?: NarrativeProject; error?: string };
+const projectJobStorageKey = "narrative-genetics-project-job";
 
 const sliderData = [["darkness", "Darkness", 7], ["weirdness", "Weirdness", 5], ["romance", "Romance", 2], ["action", "Action", 4], ["humor", "Humor", 3]] as const;
 $("#sliders").innerHTML = sliderData.map(([name, title, value]) => `<label class="range"><span>${title}<output for="${name}">${value}</output></span><input id="${name}" name="${name}" type="range" min="0" max="10" value="${value}"></label>`).join("");
@@ -16,6 +18,8 @@ function toast(message: string, error = false): void { status.textContent = mess
 function values(value: FormDataEntryValue | null): string[] { return String(value ?? "").split(",").map(x => x.trim()).filter(Boolean); }
 function show(name: "profile" | "candidates" | "project"): void { document.querySelectorAll(".panel").forEach(p => p.classList.remove("active")); $(`#${name}-panel`).classList.add("active"); document.querySelectorAll<HTMLButtonElement>(".step").forEach(step => step.classList.toggle("active", step.dataset.step === name)); window.scrollTo({ top: 330, behavior: "smooth" }); }
 async function api<T>(path: string, payload: unknown): Promise<T> { const response = await fetch(applicationUrl(path), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); const result = await response.json() as T & { error?: string }; if (!response.ok) throw new Error(result.error ?? "Request failed"); return result; }
+async function get<T>(path: string): Promise<T> { const response = await fetch(applicationUrl(path), { cache: "no-store" }); const result = await response.json() as T & { error?: string }; if (!response.ok) throw new Error(result.error ?? "Request failed"); return result; }
+const wait = (milliseconds: number): Promise<void> => new Promise(resolve => window.setTimeout(resolve, milliseconds));
 const human = (value: string): string => value.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
 
 form.addEventListener("submit", async event => {
@@ -26,7 +30,22 @@ form.addEventListener("submit", async event => {
 
 function renderCandidates(candidates: GenomeCandidate[]): void {
   grid.innerHTML = candidates.map((c, i) => `<article class="candidate"><div class="candidate-rank"><span>${i === 0 ? "Best fit" : `Candidate 0${i + 1}`}</span><span class="score">${c.scores.overall.toFixed(1)}</span></div><h3>${escapeHtml(c.title)}</h3><span class="genre">${escapeHtml(c.genreFeel)}</span><p class="logline">${escapeHtml(c.logline)}</p><p class="seed-fit"><b>Seed fidelity</b>${escapeHtml(c.seedConnection)}</p><div class="genes"><div class="gene"><span>Engine</span><strong>${human(c.storyGenome.primaryEngine)}</strong></div><div class="gene"><span>Emotion</span><strong>${human(c.storyGenome.emotionalPromise.primary)}</strong></div><div class="gene"><span>Scarcity</span><strong>${human(c.worldGenome.scarcity.visible)}</strong></div><div class="gene"><span>Wound</span><strong>${human(c.worldGenome.historicalWound)}</strong></div></div>${c.validation.warnings.length ? `<p class="warning">△ ${c.validation.warnings.length} soft warning${c.validation.warnings.length > 1 ? "s" : ""}</p>` : ""}<button class="primary select" data-index="${i}">Grow this story <span>→</span></button></article>`).join("");
-  grid.querySelectorAll<HTMLButtonElement>(".select").forEach(button => button.addEventListener("click", async () => { const candidate = candidates[Number(button.dataset.index)]; if (!candidate || !tasteProfile) return; button.disabled = true; button.firstChild!.textContent = "Writing the full foundation… "; try { const result = await api<{ project: NarrativeProject }>("/api/project", { tasteProfile, candidate }); project = result.project; renderProject(project); const step = document.querySelector<HTMLButtonElement>('[data-step="project"]')!; step.disabled = false; show("project"); toast("Your AI-authored story foundation is ready."); } catch (error) { toast(error instanceof Error ? error.message : "Project generation failed", true); button.disabled = false; button.firstChild!.textContent = "Grow this story "; } }));
+  grid.querySelectorAll<HTMLButtonElement>(".select").forEach(button => button.addEventListener("click", async () => { const candidate = candidates[Number(button.dataset.index)]; if (!candidate || !tasteProfile) return; button.disabled = true; button.firstChild!.textContent = "Writing the full foundation… "; try { const result = await api<{ job: ProjectJob }>("/api/projects", { tasteProfile, candidate }); localStorage.setItem(projectJobStorageKey, result.job.id); await recoverProject(result.job.id); } catch (error) { toast(error instanceof Error ? error.message : "Project generation failed", true); button.disabled = false; button.firstChild!.textContent = "Grow this story "; } }));
+}
+
+async function recoverProject(id: string): Promise<void> {
+  let transientFailures = 0;
+  for (;;) {
+    try {
+      const { job } = await get<{ job: ProjectJob }>(`/api/projects/${id}`); transientFailures = 0;
+      if (job.status === "complete" && job.project) { project = job.project; renderProject(project); const step = document.querySelector<HTMLButtonElement>('[data-step="project"]')!; step.disabled = false; show("project"); toast("Your AI-authored story foundation is ready."); return; }
+      if (job.status === "failed") { localStorage.removeItem(projectJobStorageKey); toast(job.error ?? "Project generation failed.", true); document.querySelectorAll<HTMLButtonElement>(".select").forEach(button => { button.disabled = false; button.firstChild!.textContent = "Grow this story "; }); return; }
+    } catch (error) {
+      transientFailures += 1;
+      if (transientFailures >= 5) { toast("Connection paused. The project continues on the server and will be restored when this page reconnects.", true); transientFailures = 0; }
+    }
+    await wait(3000);
+  }
 }
 
 const sections = [
@@ -59,3 +78,5 @@ async function exportProject(): Promise<void> {
 }
 
 document.querySelectorAll<HTMLButtonElement>(".step").forEach(step => step.addEventListener("click", () => { if (!step.disabled) show(step.dataset.step as "profile" | "candidates" | "project"); }));
+const recoverableProjectJob = localStorage.getItem(projectJobStorageKey);
+if (recoverableProjectJob) { toast("Restoring your project generation…"); void recoverProject(recoverableProjectJob); }

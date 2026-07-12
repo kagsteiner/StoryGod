@@ -11,6 +11,7 @@ dist/
 
 # Runtime-generated story sessions
 data/story-sessions/
+data/project-jobs/
 
 # Test coverage and logs
 coverage/
