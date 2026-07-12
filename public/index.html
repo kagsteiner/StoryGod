@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Evolve coherent story worlds from a narrative genome.">
+  <title>Narrative Genetics</title>
+  <link rel="stylesheet" href="/styles.css?v=storyteller-1">
+</head>
+<body>
+  <div id="builder-shell">
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="Narrative Genetics home"><span class="brand-mark">NG</span><span>Narrative Genetics</span></a>
+    <div class="mast-actions"><button id="continue-story" class="continue-story" hidden>Continue book</button><p class="principle">Structure first. Prose second.</p></div>
+  </header>
+  <main>
+    <section class="hero" id="hero">
+      <div class="eyebrow">Interactive fiction foundry</div>
+      <h1>Grow a story that<br><em>holds together.</em></h1>
+      <p class="lede">Define your taste. We’ll evolve five narrative genomes, test their coherence, and grow your favorite into a complete story foundation.</p>
+    </section>
+
+    <nav class="steps" aria-label="Progress">
+      <button class="step active" data-step="profile"><span>01</span> Taste</button>
+      <button class="step" data-step="candidates" disabled><span>02</span> Genomes</button>
+      <button class="step" data-step="project" disabled><span>03</span> Project</button>
+    </nav>
+
+    <section id="profile-panel" class="panel active" aria-labelledby="profile-title">
+      <div class="section-heading"><div><span class="kicker">Your creative coordinates</span><h2 id="profile-title">Taste profile</h2></div><p>Specific enough to guide. Open enough to surprise.</p></div>
+      <form id="taste-form">
+        <div class="form-grid">
+          <label class="field wide"><span>Genres <b>comma separated</b></span><input name="genres" value="fantasy, political mystery" required></label>
+          <label class="field"><span>Tone <b>comma separated</b></span><input name="tone" value="melancholy, suspense" required></label>
+          <label class="field"><span>Audience</span><select name="targetAudience"><option value="adult">Adult</option><option value="young_adult">Young adult</option><option value="middle_grade">Middle grade</option></select></label>
+          <label class="field"><span>Prose style</span><select name="literaryStyle"><option value="cinematic">Cinematic</option><option value="lyrical">Lyrical</option><option value="mythic">Mythic</option><option value="noir">Noir</option><option value="cozy">Cozy</option><option value="plain">Plain</option></select></label>
+          <label class="field wide"><span>Story seed <b>optional</b></span><textarea name="userSeed" rows="4" placeholder="A place, tension, image, or impossible question…">A maritime republic that is rich but terrified of running out of fresh water.</textarea></label>
+        </div>
+        <div class="sliders" id="sliders"></div>
+        <div class="form-grid compact">
+          <label class="field"><span>Capture <b>optional, comma separated</b></span><input name="inspirationsToCapture" placeholder="slow-burn intrigue, lived-in cities"></label>
+          <label class="field"><span>Avoid <b>optional, comma separated</b></span><input name="inspirationsToAvoid" placeholder="chosen-one prophecy"></label>
+          <label class="field wide"><span>Content limits <b>optional, comma separated</b></span><input name="contentLimits" placeholder="graphic violence"></label>
+        </div>
+        <div class="action-row"><p><span class="pulse"></span> Authored with the GPT-5.6 family. Your key stays on the server.</p><button class="primary" type="submit">Create five story directions <span>→</span></button></div>
+      </form>
+    </section>
+
+    <section id="candidates-panel" class="panel" aria-labelledby="candidates-title">
+      <div class="section-heading"><div><span class="kicker">Selection pressure applied</span><h2 id="candidates-title">Top genomes</h2></div><p>Ranked by coherence, originality, emotion, and interactive potential.</p></div>
+      <div id="candidate-grid" class="candidate-grid"></div>
+    </section>
+
+    <section id="project-panel" class="panel" aria-labelledby="project-title">
+      <div id="project-header" class="project-heading"></div>
+      <div class="project-layout">
+        <aside id="project-nav" class="project-nav" aria-label="Project sections"></aside>
+        <article id="project-content" class="document"></article>
+      </div>
+    </section>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </main>
+  <footer><span>Narrative Genetics</span><span>Canonical structure for stories with consequences.</span></footer>
+  </div>
+
+  <section id="reader-shell" class="reader-shell" hidden aria-label="Interactive novel reader">
+    <header class="reader-bar">
+      <button id="reader-library" class="reader-icon" aria-label="Return to project library">←</button>
+      <div class="reader-identity"><span id="reader-act">Act I</span><strong id="reader-title">Your story</strong></div>
+      <button id="theme-toggle" class="reader-icon theme-toggle" aria-label="Switch color theme">◐</button>
+    </header>
+    <div id="reader-progress" class="reader-progress" aria-hidden="true"></div>
+    <main class="reader-book">
+      <div id="reader-pages" class="reader-pages"></div>
+      <section id="reader-generation" class="reader-generation" hidden aria-live="polite">
+        <span class="ink-loader" aria-hidden="true"></span>
+        <div><strong>The next page is being written</strong><p>You can safely reload or close this tab. The story will continue on the server.</p></div>
+      </section>
+      <section id="reader-error" class="reader-error" hidden>
+        <strong>The page was interrupted.</strong><p id="reader-error-message"></p><button id="retry-scene">Resume writing</button>
+      </section>
+      <section id="story-composer" class="story-composer" hidden aria-labelledby="your-move-title">
+        <div class="composer-heading"><span>Reader becomes player</span><h2 id="your-move-title">What does the protagonist attempt?</h2><p>Choose the intention. The world will decide the consequence.</p></div>
+        <textarea id="player-action" rows="3" maxlength="2000" placeholder="Write what the protagonist tries to do…"></textarea>
+        <div id="story-suggestions" class="story-suggestions" hidden></div>
+        <div class="composer-controls">
+          <button id="inspiration-button" class="quiet-button">Need inspiration?</button>
+          <label class="pacing-control"><span>Pacing</span><select id="story-pacing"><option value="adaptive">Adaptive</option><option value="quick">Quick beat</option><option value="scene">Scene</option><option value="immersive">Immersive</option></select></label>
+          <button id="continue-button" class="reader-primary">Continue the story <span>→</span></button>
+        </div>
+      </section>
+      <section id="story-ending" class="story-ending" hidden><span>Finis</span><h2>The story has reached its ending.</h2><p id="ending-name"></p></section>
+    </main>
+  </section>
+  <script type="module" src="/public-client.js?v=storyteller-1"></script>
+</body>
+</html>
