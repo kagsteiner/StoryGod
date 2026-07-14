@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createProject, generateCandidates, normalizeTaste } from "./narrative.js";
 import { applySceneResult, newStorySession } from "./story-service.js";
-import { loadStorySession, restoreStorySession, saveStorySession } from "./story-store.js";
+import { listStorySessions, loadStorySession, restoreStorySession, saveStorySession } from "./story-store.js";
 import { storyMarkdown, storyMarkdownFilename } from "./story-export.js";
 import type { StorySceneResult } from "./types.js";
 
@@ -62,5 +62,11 @@ test("sessions survive disk reload and interrupted browser backups restore safel
     const restored = await restoreStorySession(session);
     assert.equal(restored.generation.status, "failed");
     assert.match(restored.generation.error ?? "", /interrupted/i);
+    const newer = newStorySession(project, "scene", "session-test-0004"); newer.title = "A Newer Story"; newer.updatedAt = new Date(Date.now() + 10_000).toISOString();
+    await saveStorySession(newer);
+    const stories = await listStorySessions();
+    assert.deepEqual(stories.map(story => story.id), [newer.id, session.id]);
+    assert.equal(stories[1]?.generationStatus, "failed");
+    assert.equal(stories[1]?.turnCount, 0);
   } finally { if (previous === undefined) delete process.env.STORY_DATA_DIR; else process.env.STORY_DATA_DIR = previous; await rm(directory, { recursive: true, force: true }); }
 });

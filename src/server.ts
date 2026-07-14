@@ -11,6 +11,7 @@ import { openAIConfigured } from "./env.js";
 import { createProjectJob, getProjectJob, isProjectGenerationRunning, publicProjectJob, startProjectGeneration } from "./project-service.js";
 import { createStorySession, generateNextStoryScene, getStorySession, getStorySuggestions, isStoryGenerationRunning, normalizePacing, restoreStorySession } from "./story-service.js";
 import { storyMarkdown, storyMarkdownFilename } from "./story-export.js";
+import { listStorySessions } from "./story-store.js";
 import type { StorySession } from "./types.js";
 
 const publicDir = fileURLToPath(new URL("./public/", import.meta.url));
@@ -50,6 +51,7 @@ export const server = createServer(async (req, res) => {
     const projectRoute = pathname.match(/^\/api\/projects\/([a-zA-Z0-9-]+)$/);
     if (method === "GET" && projectRoute) { const job = await getProjectJob(projectRoute[1]!); if (!job) return json(res, 404, { error: "Project generation job not found." }); if (job.status !== "complete" && job.status !== "failed" && !isProjectGenerationRunning(job.id)) startProjectGeneration(job.id); return json(res, 200, { job: publicProjectJob(job) }); }
     if (method === "POST" && pathname === "/api/export") { const payload = await body(req) as { project?: NarrativeProject }; if (!payload.project?.projectId) throw new Error("project is required."); const zip = createZip(projectFiles(payload.project)); const filename = payload.project.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "narrative-project"; res.writeHead(200, { "content-type": "application/zip", "content-disposition": `attachment; filename="${filename}.zip"`, "content-length": zip.length }); res.end(zip); return; }
+    if (method === "GET" && pathname === "/api/story/sessions") return json(res, 200, { stories: await listStorySessions() });
     if (method === "POST" && pathname === "/api/story/sessions") { const payload = await body(req) as { project?: NarrativeProject; pacing?: unknown }; if (!payload.project) throw new Error("project is required."); return json(res, 201, { session: await createStorySession(payload.project, normalizePacing(payload.pacing)) }); }
     const storyRoute = pathname.match(/^\/api\/story\/sessions\/([a-zA-Z0-9-]+)(?:\/(begin|continue|suggestions|resume|restore|status|export))?$/);
     if (storyRoute) {
