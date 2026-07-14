@@ -71,7 +71,10 @@
     <header class="reader-bar">
       <button id="reader-library" class="reader-icon" aria-label="Return to project library">←</button>
       <div class="reader-identity"><span id="reader-act">Act I</span><strong id="reader-title">Your story</strong></div>
-      <button id="theme-toggle" class="reader-icon theme-toggle" aria-label="Switch color theme">◐</button>
+      <div class="reader-actions">
+        <button id="save-story" class="reader-save" type="button" aria-label="Save story as a Markdown file" title="Save story as Markdown"><span aria-hidden="true">↓</span> Save</button>
+        <button id="theme-toggle" class="reader-icon theme-toggle" type="button" aria-label="Switch color theme">◐</button>
+      </div>
     </header>
     <div id="reader-progress" class="reader-progress" aria-hidden="true"></div>
     <main class="reader-book">

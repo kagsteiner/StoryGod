@@ -97,13 +97,17 @@ footer { display:flex; justify-content:space-between; padding:30px 36px; border-
 body.reader-open { overflow-x:hidden; background:var(--book-bg); }
 .reader-shell { min-height:100dvh; color:var(--page-ink); background:var(--book-bg); transition:background .25s,color .25s; }
 .reader-shell [hidden] { display:none !important; }
-.reader-bar { position:sticky; top:0; z-index:20; display:grid; grid-template-columns:44px minmax(0,1fr) 44px; align-items:center; min-height:64px; padding:max(8px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left)); background:var(--bar); border-bottom:1px solid var(--page-line); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
+.reader-bar { position:sticky; top:0; z-index:20; display:grid; grid-template-columns:44px minmax(0,1fr) auto; align-items:center; min-height:64px; padding:max(8px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left)); background:var(--bar); border-bottom:1px solid var(--page-line); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 .reader-identity { min-width:0; text-align:center; }
 .reader-identity span { display:block; margin-bottom:3px; color:var(--page-accent); font:500 9px DM Mono,monospace; text-transform:uppercase; letter-spacing:.14em; }
 .reader-identity strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 15px Newsreader,Georgia,serif; }
 .reader-icon { display:grid; place-items:center; width:40px; height:40px; padding:0; border:0; border-radius:50%; color:var(--page-ink); background:transparent; cursor:pointer; font-size:20px; }
 .reader-icon:hover { background:var(--page-soft); }
 .theme-toggle { font-size:18px; }
+.reader-actions { display:flex; align-items:center; gap:2px; }
+.reader-save { display:flex; align-items:center; gap:5px; padding:8px 7px; border:0; border-radius:6px; color:var(--page-muted); background:transparent; cursor:pointer; font:500 10px DM Mono,monospace; letter-spacing:.04em; }
+.reader-save span { font-size:15px; line-height:1; }
+.reader-save:hover { color:var(--page-ink); background:var(--page-soft); }
 .reader-progress { position:fixed; z-index:21; top:63px; left:0; width:0; height:2px; background:var(--page-accent); transition:width .25s; }
 .reader-book { width:min(100%,900px); min-height:calc(100dvh - 64px); margin:0 auto; padding:clamp(18px,4vw,50px) clamp(14px,4vw,42px) max(40px,env(safe-area-inset-bottom)); background:var(--page); box-shadow:0 0 80px rgba(0,0,0,.18); }
 .reader-pages { width:min(100%,690px); margin:auto; }
