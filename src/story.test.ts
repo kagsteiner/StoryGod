@@ -6,6 +6,7 @@ import test from "node:test";
 import { createProject, generateCandidates, normalizeTaste } from "./narrative.js";
 import { applySceneResult, newStorySession } from "./story-service.js";
 import { loadStorySession, restoreStorySession, saveStorySession } from "./story-store.js";
+import { storyMarkdown, storyMarkdownFilename } from "./story-export.js";
 import type { StorySceneResult } from "./types.js";
 
 const taste = normalizeTaste({ genres: ["fantasy", "political mystery"], tone: ["melancholy", "suspense"], darkness: 7, weirdness: 5, romance: 2, action: 4, humor: 2, userSeed: "A rich maritime republic fears running out of fresh water." });
@@ -34,6 +35,19 @@ test("scene application updates continuity once and is idempotent across mobile 
   assert.ok(updated.state.establishedFacts.includes("A second water ledger exists."));
   assert.ok(updated.state.openThreads.includes("Who maintains the second ledger?"));
   assert.equal(applySceneResult(updated, scene, "request-0001", "duplicate", "scene").turns.length, 1);
+});
+
+test("story sessions export as readable Markdown with choices and a safe filename", () => {
+  const session = newStorySession(project, "scene", "session-test-export");
+  const updated = applySceneResult(session, { ...scene, proseMarkdown: "# The Ledger Opens\n\nMara touched the salt-stiff page.\n\nThe numbers did not balance." }, "request-export", "I inspect the forbidden ledger.\nQuietly.", "scene");
+  const markdown = storyMarkdown(updated);
+  assert.match(markdown, new RegExp(`^# ${updated.title}`));
+  assert.match(markdown, /## Scene 1: The Ledger Opens/);
+  assert.match(markdown, /\*\*Your choice\*\*\n\n> I inspect the forbidden ledger\.\n> Quietly\./);
+  assert.equal(markdown.match(/# The Ledger Opens/g), null);
+  assert.match(markdown, /Mara touched the salt-stiff page\.\n\nThe numbers did not balance\./);
+  assert.match(storyMarkdownFilename("Échos: A Story?"), /^[a-z0-9-]+\.md$/);
+  assert.equal(storyMarkdownFilename("Échos: A Story?"), "echos-a-story.md");
 });
 
 test("sessions survive disk reload and interrupted browser backups restore safely", async () => {

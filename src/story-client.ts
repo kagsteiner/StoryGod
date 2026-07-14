@@ -1,4 +1,5 @@
 import type { NarrativeProject, StoryPacing, StorySession, StorySuggestion } from "./types.js";
+import { storyMarkdownFilename } from "./story-export.js";
 
 const applicationBasePath = document.querySelector<HTMLMetaElement>('meta[name="application-base-path"]')?.content.replace(/\/$/, "") ?? "";
 const applicationUrl = (path: string): string => `${applicationBasePath}${path}`;
@@ -45,6 +46,12 @@ async function readBackup(id: string): Promise<StorySession | undefined> {
 function activeId(): string | undefined { try { return localStorage.getItem(ACTIVE_KEY) ?? undefined; } catch { return undefined; } }
 function storyIdFromUrl(): string | undefined { return location.pathname.match(/\/story\/([a-zA-Z0-9-]+)$/)?.[1]; }
 function newRequestId(): string { if (typeof crypto.randomUUID === "function") return crypto.randomUUID(); const bytes = crypto.getRandomValues(new Uint8Array(16)); return `mobile-${Date.now().toString(36)}-${[...bytes].map(value => value.toString(16).padStart(2, "0")).join("")}`; }
+
+function saveStoryToFile(session: StorySession): void {
+  const link = document.createElement("a");
+  link.href = applicationUrl(`/api/story/sessions/${session.id}/export`); link.download = storyMarkdownFilename(session.title); link.hidden = true;
+  document.body.appendChild(link); link.click(); link.remove();
+}
 
 function showReader(): void { builder.hidden = true; reader.hidden = false; document.body.classList.add("reader-open"); }
 function showBuilder(): void { reader.hidden = true; builder.hidden = false; document.body.classList.remove("reader-open"); stopPolling(); }
@@ -124,6 +131,7 @@ actionInput.addEventListener("keydown", event => { if ((event.metaKey || event.c
 inspirationButton.addEventListener("click", () => { if (!current) return; inspirationButton.disabled = true; inspirationButton.textContent = "Finding possibilities…"; void request<{ session: StorySession; suggestions: StorySuggestion[] }>(`/api/story/sessions/${current.id}/suggestions`, "POST", {}).then(result => renderSession(result.session)).catch(() => { inspirationButton.textContent = "Try inspiration again"; }).finally(() => { inspirationButton.disabled = false; inspirationButton.textContent = "Need inspiration?"; }); });
 get("#retry-scene").addEventListener("click", () => { if (!current) return; void resumeGeneration(current); });
 get("#reader-library").addEventListener("click", () => { history.pushState({}, "", "/"); showBuilder(); });
+get("#save-story").addEventListener("click", () => { if (current) saveStoryToFile(current); });
 get("#theme-toggle").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
 continueStoryButton.addEventListener("click", () => { const id = activeId(); if (id) { history.pushState({}, "", applicationUrl(`/story/${id}`)); void refreshSession(id); } });
 window.addEventListener("popstate", () => { const id = storyIdFromUrl(); if (id) void refreshSession(id); else showBuilder(); });
