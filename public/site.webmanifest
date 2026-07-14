@@ -1,0 +1,13 @@
+{
+  "name": "Narrative Genetics",
+  "short_name": "NG",
+  "start_url": "/aidventure/",
+  "scope": "/aidventure/",
+  "display": "standalone",
+  "background_color": "#f5f2e9",
+  "theme_color": "#18211b",
+  "icons": [
+    { "src": "/aidventure/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/aidventure/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
