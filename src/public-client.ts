@@ -1,4 +1,4 @@
-import type { GenomeCandidate, NarrativeProject, TasteProfile } from "./types.js";
+import type { GenomeCandidate, NarrativeProject, StorySessionSummary, TasteProfile } from "./types.js";
 import { startStory } from "./story-client.js";
 
 const applicationBasePath = document.querySelector<HTMLMetaElement>('meta[name="application-base-path"]')?.content.replace(/\/$/, "") ?? "";
@@ -21,6 +21,24 @@ async function api<T>(path: string, payload: unknown): Promise<T> { const respon
 async function get<T>(path: string): Promise<T> { const response = await fetch(applicationUrl(path), { cache: "no-store" }); const result = await response.json() as T & { error?: string }; if (!response.ok) throw new Error(result.error ?? "Request failed"); return result; }
 const wait = (milliseconds: number): Promise<void> => new Promise(resolve => window.setTimeout(resolve, milliseconds));
 const human = (value: string): string => value.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
+const storyDate = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+async function loadStoryLibrary(): Promise<void> {
+  const library = $<HTMLElement>("#story-library"); const list = $("#story-library-list");
+  try {
+    const { stories } = await get<{ stories: StorySessionSummary[] }>("/api/story/sessions");
+    library.hidden = stories.length === 0;
+    list.innerHTML = stories.map(story => {
+      const state = story.status === "complete" ? "Complete" : story.generationStatus === "generating" ? "Writing" : "In progress";
+      const sceneLabel = `${story.turnCount} scene${story.turnCount === 1 ? "" : "s"}`;
+      return `<article class="saved-story"><div class="saved-story-copy"><div class="saved-story-meta"><span>${escapeHtml(state)}</span><span>Act ${story.currentAct}</span><span>${sceneLabel}</span></div><h3>${escapeHtml(story.title)}</h3><p>${escapeHtml(story.protagonistName)} · Updated ${escapeHtml(storyDate.format(new Date(story.updatedAt)))}</p></div><a href="${applicationUrl(`/story/${story.id}`)}">${story.status === "complete" ? "Read" : "Continue"}<span aria-hidden="true">→</span></a></article>`;
+    }).join("");
+  } catch {
+    library.hidden = false;
+    list.innerHTML = '<p class="story-library-error">Saved stories could not be loaded. <button id="retry-story-library" type="button">Try again</button></p>';
+    $("#retry-story-library").addEventListener("click", () => void loadStoryLibrary());
+  }
+}
 
 form.addEventListener("submit", async event => {
   event.preventDefault(); const data = new FormData(form); const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!; button.disabled = true; button.firstChild!.textContent = "Writing story directions… ";
@@ -80,3 +98,4 @@ async function exportProject(): Promise<void> {
 document.querySelectorAll<HTMLButtonElement>(".step").forEach(step => step.addEventListener("click", () => { if (!step.disabled) show(step.dataset.step as "profile" | "candidates" | "project"); }));
 const recoverableProjectJob = localStorage.getItem(projectJobStorageKey);
 if (recoverableProjectJob) { toast("Restoring your project generation…"); void recoverProject(recoverableProjectJob); }
+void loadStoryLibrary();

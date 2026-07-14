@@ -1,6 +1,6 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { StorySession } from "./types.js";
+import type { StorySession, StorySessionSummary } from "./types.js";
 
 const safeId = /^[a-zA-Z0-9-]{8,80}$/;
 
@@ -27,6 +27,24 @@ export async function loadStorySession(id: string): Promise<StorySession | undef
     if (code === "ENOENT") return undefined;
     throw error;
   }
+}
+
+export async function listStorySessions(): Promise<StorySessionSummary[]> {
+  let names: string[];
+  try { names = (await readdir(root(), { withFileTypes: true })).filter(entry => entry.isFile() && entry.name.endsWith(".json")).map(entry => entry.name.slice(0, -5)).filter(id => safeId.test(id)); }
+  catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+    if (code === "ENOENT") return [];
+    throw error;
+  }
+  const summaries = await Promise.all(names.map(async id => {
+    try {
+      const session = await loadStorySession(id);
+      if (!session?.title || !session.protagonistName || !session.updatedAt || !Array.isArray(session.turns)) return undefined;
+      return { id, title: session.title, protagonistName: session.protagonistName, updatedAt: session.updatedAt, status: session.status, currentAct: session.state.currentAct, turnCount: session.turns.length, generationStatus: session.generation.status } satisfies StorySessionSummary;
+    } catch { return undefined; }
+  }));
+  return summaries.filter((summary): summary is StorySessionSummary => Boolean(summary)).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 }
 
 export async function restoreStorySession(session: StorySession): Promise<StorySession> {

@@ -164,6 +164,17 @@ export interface StorySession {
   generation: PendingStoryGeneration;
 }
 
+export interface StorySessionSummary {
+  id: string;
+  title: string;
+  protagonistName: string;
+  updatedAt: string;
+  status: StoryStatus;
+  currentAct: 1 | 2 | 3;
+  turnCount: number;
+  generationStatus: PendingStoryGeneration["status"];
+}
+
 export interface StorySceneResult {
   sceneTitle: string;
   proseMarkdown: string;
